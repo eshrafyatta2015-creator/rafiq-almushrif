@@ -15,7 +15,8 @@ if (
   !(window as any).Capacitor?.isNativePlatform?.()
 ) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => {
+    const base = import.meta.env.BASE_URL || './';
+    navigator.serviceWorker.register(`${base}sw.js`, { scope: base }).catch(() => {
       /* التخزين المؤقت غير متاح */
     });
   });

@@ -1,13 +1,12 @@
 /* رفيق المشرف — عامل الخدمة: تخزين واجهة التطبيق للعمل دون إنترنت */
 const CACHE_VERSION = 'rafiq-v1.1.0';
 const PRECACHE_URLS = [
-  '/',
-  '/index.html',
-  '/index.css',
-  '/icon.svg',
-  '/icon-192.png',
-  '/icon-512.png',
-  '/manifest.webmanifest',
+  './',
+  './index.html',
+  './icon.svg',
+  './icon-192.png',
+  './icon-512.png',
+  './manifest.webmanifest',
 ];
 
 self.addEventListener('install', (event) => {
@@ -46,10 +45,10 @@ self.addEventListener('fetch', (event) => {
       fetch(req)
         .then((res) => {
           const copy = res.clone();
-          caches.open(CACHE_VERSION).then((c) => c.put('/index.html', copy));
+          caches.open(CACHE_VERSION).then((c) => c.put('./index.html', copy));
           return res;
         })
-        .catch(() => caches.match('/index.html'))
+        .catch(() => caches.match('./index.html'))
     );
     return;
   }

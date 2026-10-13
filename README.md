@@ -4,6 +4,14 @@
 
 **تطبيق المشرفين التربويين لأتمتة تقارير الزيارات الصفية** — يحوّل سرد المشرف لمجريات الحصة (كتابةً أو صوتيًا) إلى تحليل وصفي احترافي وتوزيع علامات على مؤشرات الأداء الرسمية، مع تصدير التقريرين (الوصفي وعلامات الأداء) بصيغتَي PDF و Excel.
 
+**روابط رسمية:**
+
+- **نسخة الويب (تعمل الآن):** https://eshrafyatta2015-creator.github.io/rafiq-almushrif/
+- **الإصدارات وملفات APK:** https://github.com/eshrafyatta2015-creator/rafiq-almushrif/releases
+- **المستودع:** https://github.com/eshrafyatta2015-creator/rafiq-almushrif
+
+> لتفعيل الميزات الذكية (تحليل Gemini) في نسخة الويب أو APK: انشر خادم `server.ts` مع `GEMINI_API_KEY` ثم أدخل رابطه في **الإعدادات ← رابط الخادم الذكي**. باقي المزايا تعمل دون إنترنت.
+
 <p align="center">
   <img src="public/icon.svg" width="120" alt="شعار رفيق المشرف" />
 </p>

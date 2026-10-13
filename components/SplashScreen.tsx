@@ -35,7 +35,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
         <div className="relative">
           <div className="absolute inset-0 bg-blue-500/40 blur-3xl rounded-full scale-110" />
           <img
-            src="/icon.svg"
+            src={`${import.meta.env.BASE_URL}icon.svg`}
             alt="شعار رفيق المشرف"
             width={132}
             height={132}

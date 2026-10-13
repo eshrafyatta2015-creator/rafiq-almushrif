@@ -875,7 +875,7 @@ const App: React.FC = () => {
           title="العودة إلى الشاشة الرئيسية"
         >
           <div className="p-2 bg-gradient-to-br from-blue-600 to-indigo-800 rounded-2xl text-white shadow-xl shadow-blue-200 group-hover:scale-105 transition-transform">
-            <img src="/icon.svg" alt="شعار" width={30} height={30} className="w-[30px] h-[30px] rounded-lg" />
+            <img src={`${import.meta.env.BASE_URL}icon.svg`} alt="شعار" width={30} height={30} className="w-[30px] h-[30px] rounded-lg" />
           </div>
           <div className="text-right">
             <h1 className="text-lg md:text-2xl font-black text-slate-900 tracking-tight leading-none">
