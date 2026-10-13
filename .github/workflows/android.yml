@@ -1,0 +1,93 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [main, master]
+    tags: ['v*']
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type-check & build web app
+        run: |
+          npx tsc --noEmit
+          npm run build
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Accept Android SDK licenses
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses || true
+
+      - name: Sync Capacitor (copy web assets to Android)
+        run: npx cap sync android
+
+      - name: Prepare release keystore (optional)
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            mkdir -p android/keystore
+            echo "$KEYSTORE_BASE64" | base64 -d > android/keystore/release.keystore
+            printf 'RELEASE_KEYSTORE_FILE=../keystore/release.keystore\nRELEASE_KEYSTORE_PASSWORD=%s\nRELEASE_KEY_ALIAS=%s\nRELEASE_KEY_PASSWORD=%s\n' \
+              "$KEYSTORE_PASSWORD" "$KEY_ALIAS" "$KEY_PASSWORD" > android/keystore.properties
+            echo "Release keystore ready."
+          else
+            echo "No keystore secrets configured — release APK will be unsigned (debug APK is still signed)."
+          fi
+
+      - name: Build APKs
+        working-directory: android
+        run: ./gradlew assembleDebug assembleRelease --no-daemon
+
+      - name: Collect APKs
+        run: |
+          mkdir -p releases
+          cp android/app/build/outputs/apk/debug/app-debug.apk releases/RafiqAlmushrif-debug.apk
+          if [ -f android/app/build/outputs/apk/release/app-release.apk ]; then
+            cp android/app/build/outputs/apk/release/app-release.apk releases/RafiqAlmushrif.apk
+          elif [ -f android/app/build/outputs/apk/release/app-release-unsigned.apk ]; then
+            cp android/app/build/outputs/apk/release/app-release-unsigned.apk releases/RafiqAlmushrif-unsigned.apk
+          fi
+          ls -lh releases/
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: RafiqAlmushrif-APK
+          path: releases/*.apk
+          if-no-files-found: error
+
+      - name: Attach APKs to GitHub Release (tags only)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: releases/*.apk
+          generate_release_notes: true
+          body: |
+            إصدار **رفيق المشرف** — تطبيق المشرفين التربويين لأتمتة تقارير الزيارات الصفية.
+            - `RafiqAlmushrif.apk` — نسخة Release موقّعة (إن وُجدت أسرار التوقيع) أو غير موقّعة.
+            - `RafiqAlmushrif-debug.apk` — نسخة Debug موقّعة بتوقيع Android التجريبي (قابلة للتثبيت والاختبار).

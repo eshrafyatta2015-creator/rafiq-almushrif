@@ -1,0 +1,57 @@
+# ===== الاعتماديات والبناء =====
+node_modules/
+dist/
+dist-ssr/
+*.tsbuildinfo
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# ===== متغيرات البيئة والسر =====
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+*.jks
+*.keystore
+android/keystore.properties
+android/keystore/
+
+# ===== أرشيف الملفات المؤقتة =====
+.cache/
+.tmp/
+*.tmp
+
+# ===== Android / Capacitor =====
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/.idea/
+android/captures/
+android/app/src/main/assets/public/
+android/app/src/main/assets/capacitor.config.json
+android/app/src/main/assets/capacitor.plugins.json
+android/app/src/main/res/xml/config.xml
+android/capacitor-cordova-android-plugins/
+*.apk
+*.aab
+*.aar
+
+# ===== ملفات الإصدارات المحلية (تُرفق في GitHub Releases) =====
+releases/*.apk
+releases/*.aab
+
+# ===== محررات وأنظمة =====
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ===== نسخ احتياطية =====
+_backup*/
+_backups/

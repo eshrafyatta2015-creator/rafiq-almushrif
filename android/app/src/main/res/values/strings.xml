@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">رفيق المشرف</string>
+    <string name="title_activity_main">رفيق المشرف</string>
+    <string name="package_name">ps.edu.rafiqalmushrif</string>
+    <string name="custom_url_scheme">ps.edu.rafiqalmushrif</string>
+</resources>

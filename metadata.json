@@ -1,0 +1,10 @@
+{
+  "name": "rafiq-almushrif",
+  "description": "تطبيق ذكي للمشرفين التربويين لأتمتة تقارير الزيارات الصفية باستخدام الذكاء الاصطناعي وتحويل الصوت إلى نص.",
+  "requestFramePermissions": [
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
