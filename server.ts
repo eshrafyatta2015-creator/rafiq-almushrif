@@ -47,10 +47,17 @@ app.get('/api/health', (_req, res) => {
 app.post('/api/analyze-proceedings', async (req, res) => {
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   try {
-    const { proceedings } = req.body;
+    const { proceedings, style } = req.body;
     if (!proceedings || typeof proceedings !== 'string' || !proceedings.trim()) {
-      return res.status(400).json({ error: 'الرجاء إدخال نص مجريات الحصة أولاً.' });
+      return res.status(400).json({ error: 'الرجاء إدخال نص مجرييات الحصة أولاً.' });
     }
+
+    const styleHint =
+      style === 'concise'
+        ? 'أسلوب التحليل: مختصر — جمل قصيرة ونقاط مباشرة.'
+        : style === 'detailed'
+          ? 'أسلوب التحليل: مفصّل — شرح موسع مع أمثلة تطبيقية من الحصة.'
+          : 'أسلوب التحليل: متوازن — احترافي متوسط الطول.';
 
     const ai = getAiClient();
     
@@ -58,9 +65,9 @@ app.post('/api/analyze-proceedings', async (req, res) => {
     const response = await ai.models.generateContent({
       model: 'gemini-3.1-flash-lite',
       contents: `
-        بصفتك خبيراً في الإشراف التربوي، قم بتحليل نص "مجريات الحصة" التالي بناءً على "المذكرة الاسترشادية للإشراف على المعلمين" الرسمية.
+        بصفتك خبيراً في الإشراف التربوي، قم بتحليل نص "مجرييات الحصة" التالي بناءً على "المذكرة الاسترشادية للإشراف على المعلمين" الرسمية.
         النص المراد تحليله: "${proceedings}"
-        
+        ${styleHint}
         المطلوب (يجب أن تكون النتائج بصيغة نقاط مهنية مركزة، كل نقطة تبدأ بـ "• "):
         - "positives": استخلص نقاط القوة وأبرز الممارسات الإيجابية.
         - "improvements": حدد جوانب التطوير وفرص التحسين.

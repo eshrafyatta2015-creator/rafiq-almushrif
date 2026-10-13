@@ -1,12 +1,23 @@
-import React, { useState } from 'react';
-import { X, Server, Type as TypeIcon, UserRound, Trash2, ShieldCheck } from 'lucide-react';
-import { AppSettings } from '../services/storage';
+import React, { useRef, useState } from 'react';
+import {
+  X,
+  Server,
+  Type as TypeIcon,
+  UserRound,
+  Trash2,
+  ShieldCheck,
+  Sparkles,
+  Download,
+  Upload,
+} from 'lucide-react';
+import { AppSettings, downloadBackupFile, restoreBackup } from '../services/storage';
 
 interface SettingsModalProps {
   settings: AppSettings;
   onSave: (s: AppSettings) => void;
   onClose: () => void;
   onClearLocalData: () => void;
+  onRestored: () => void;
 }
 
 const FONTS = [
@@ -15,6 +26,12 @@ const FONTS = [
   { name: 'Almarai', label: 'المراعي (ناعم)' },
   { name: 'Amiri', label: 'الأميري (رسمي كلاسيكي)' },
   { name: 'El Messiri', label: 'المسيري (فني)' },
+];
+
+const ANALYSIS_STYLES: Array<{ value: AppSettings['analysisStyle']; label: string; hint: string }> = [
+  { value: 'formal', label: 'متوازن (افتراضي)', hint: 'احترافي متوسط الطول' },
+  { value: 'concise', label: 'مختصر', hint: 'نقاط مباشرة وجمل قصيرة' },
+  { value: 'detailed', label: 'مفصّل', hint: 'شرح موسع مع أمثلة تطبيقية' },
 ];
 
 const isValidUrl = (url: string) => {
@@ -27,10 +44,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   onSave,
   onClose,
   onClearLocalData,
+  onRestored,
 }) => {
   const [form, setForm] = useState<AppSettings>(settings);
   const [urlError, setUrlError] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
+  const [backupMsg, setBackupMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const set = (patch: Partial<AppSettings>) => setForm((p) => ({ ...p, ...patch }));
   const setProfile = (patch: Partial<AppSettings['profile']>) =>
@@ -46,6 +66,17 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
       apiBaseUrl: form.apiBaseUrl.trim().replace(/\/+$/, ''),
       archiveApiUrl: form.archiveApiUrl.trim().replace(/\/+$/, ''),
     });
+  };
+
+  const handleImportFile = async (file: File) => {
+    try {
+      const text = await file.text();
+      const result = restoreBackup(JSON.parse(text));
+      setBackupMsg({ ok: result.ok, text: result.message });
+      if (result.ok) onRestored();
+    } catch {
+      setBackupMsg({ ok: false, text: 'تعذر قراءة الملف — تأكد أنه ملف JSON سليم.' });
+    }
   };
 
   return (
@@ -128,6 +159,69 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 </option>
               ))}
             </select>
+          </div>
+
+          <div className="pt-5 border-t border-slate-100">
+            <label className="field-label">
+              <Sparkles size={16} /> أسلوب التحليل الذكي
+            </label>
+            <select
+              value={form.analysisStyle}
+              onChange={(e) =>
+                set({ analysisStyle: e.target.value as AppSettings['analysisStyle'] })
+              }
+              className="field-input"
+            >
+              {ANALYSIS_STYLES.map((s) => (
+                <option key={s.value} value={s.value}>
+                  {s.label} — {s.hint}
+                </option>
+              ))}
+            </select>
+            <p className="text-[11px] font-bold text-slate-500 mt-2 leading-relaxed">
+              يُطبَّق على تحليل مجرييات الحصة عند استخدام الخادم الذكي.
+            </p>
+          </div>
+
+          <div className="pt-5 border-t border-slate-100">
+            <label className="field-label">
+              <Download size={16} /> النسخ الاحتياطي والاستعادة
+            </label>
+            <p className="text-[11px] font-bold text-slate-500 mb-3 leading-relaxed">
+              صدّر كل السجلات والمسودة والإعدادات كملف JSON، واستعيدها لاحقًا على أي جهاز.
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={downloadBackupFile}
+                className="flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-blue-50 text-blue-700 border border-blue-200 font-black text-sm hover:bg-blue-100 transition-all"
+              >
+                <Download size={16} /> تصدير نسخة
+              </button>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-emerald-50 text-emerald-700 border border-emerald-200 font-black text-sm hover:bg-emerald-100 transition-all"
+              >
+                <Upload size={16} /> استيراد نسخة
+              </button>
+            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="application/json,.json"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) void handleImportFile(file);
+                e.target.value = '';
+              }}
+            />
+            {backupMsg && (
+              <p
+                className={`text-xs font-black mt-3 ${backupMsg.ok ? 'text-emerald-600' : 'text-red-600'}`}
+              >
+                {backupMsg.text}
+              </p>
+            )}
           </div>
 
           <div className="pt-5 border-t border-slate-100 space-y-4">

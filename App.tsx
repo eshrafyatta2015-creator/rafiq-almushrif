@@ -35,7 +35,14 @@ import HomeScreen from './components/HomeScreen';
 import Toast, { ToastState } from './components/Toast';
 import SettingsModal from './components/SettingsModal';
 import ArchiveModal from './components/ArchiveModal';
+import HelpModal from './components/HelpModal';
 import { analyzeProceedings, analyzePerformance } from './services/geminiService';
+import {
+  numberToArabicWords,
+  gradeForScore,
+  buildReportSummary,
+  toPlainDigits,
+} from './services/utils';
 import {
   AppSettings,
   clearDraft,
@@ -80,6 +87,7 @@ const App: React.FC = () => {
   const [showShareModal, setShowShareModal] = useState(false);
   const [showArchiveModal, setShowArchiveModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showHelpModal, setShowHelpModal] = useState(false);
   const [shareUrl, setShareUrl] = useState('');
   const [zoomLevel, setZoomLevel] = useState(0.75);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -148,7 +156,7 @@ const App: React.FC = () => {
   useEffect(() => {
     const onOffline = () =>
       showToast('انقطع الاتصال بالإنترنت — يمكنك متابعة العمل وحفظ البيانات محليًا.', 'error');
-    const onOnline = () => showToast('عاد الاتصال بالإنترنت ✅', 'success');
+    const onOnline = () => showToast('عاد الاتصال بالإنترنت', 'success');
     window.addEventListener('offline', onOffline);
     window.addEventListener('online', onOnline);
     return () => {
@@ -174,7 +182,7 @@ const App: React.FC = () => {
   const copyToClipboard = async () => {
     try {
       await navigator.clipboard.writeText(shareUrl);
-      showToast('تم نسخ رابط المشاركة بنجاح ✅', 'success');
+      showToast('تم نسخ رابط المشاركة بنجاح', 'success');
     } catch {
       showToast('تعذر النسخ تلقائيًا، انسخ الرابط يدويًا.', 'error');
     }
@@ -265,7 +273,7 @@ const App: React.FC = () => {
     setIsReadOnly(false);
     setStep(Math.min(Math.max(d.step || 1, 1), 5));
     setView('wizard');
-    showToast('تم فتح المسودة المحفوظة ✅', 'success');
+    showToast('تم فتح المسودة المحفوظة', 'success');
   };
 
   const goHome = () => {
@@ -289,7 +297,7 @@ const App: React.FC = () => {
         ...prev,
         content: { ...prev.content, ...results },
       }));
-      showToast('اكتمل التحليل الذكي بنجاح ✅', 'success');
+      showToast('اكتمل التحليل الذكي بنجاح', 'success');
       setStep(3);
     } catch (error: any) {
       console.error('AI Analysis failed:', error);
@@ -307,8 +315,13 @@ const App: React.FC = () => {
     showToast('جاري تقدير علامات الأداء...', 'loading');
     try {
       const scores = await analyzePerformance(report.content);
-      setReport((prev) => ({ ...prev, scores: { ...prev.scores, ...scores } }));
-      showToast('تم تقدير العلامات بنجاح ✅', 'success');
+      const clamped: Record<string, number> = {};
+      Object.entries(scores || {}).forEach(([id, value]) => {
+        const max = PERFORMANCE_INDICATORS.find((i) => i.id === id)?.max ?? 100;
+        clamped[id] = Math.max(0, Math.min(max, Number(value) || 0));
+      });
+      setReport((prev) => ({ ...prev, scores: { ...prev.scores, ...clamped } }));
+      showToast('تم تقدير العلامات بنجاح', 'success');
       setStep(4);
     } catch (error: any) {
       console.error('AI Scoring failed:', error);
@@ -320,8 +333,25 @@ const App: React.FC = () => {
     }
   };
 
-  const calculateTotal = () => {
-    return Object.values(report.scores).reduce((a: number, b: any) => a + (Number(b) || 0), 0);
+  const calculateTotal = (): number => {
+    let total = 0;
+    Object.values(report.scores).forEach((value) => {
+      total += Number(value) || 0;
+    });
+    return total;
+  };
+
+  const totalWords = () => numberToArabicWords(calculateTotal());
+  const totalGrade = () => gradeForScore(calculateTotal());
+
+  const copyTextSummary = async () => {
+    const text = buildReportSummary(report, calculateTotal(), totalGrade().label);
+    try {
+      await navigator.clipboard.writeText(text);
+      showToast('تم نسخ الملخص النصي', 'success');
+    } catch {
+      showToast('تعذر النسخ تلقائيًا من هذا المتصفح.', 'error');
+    }
   };
 
   const handleDownloadSinglePDF = (elementId: string, fileName: string) => {
@@ -341,7 +371,7 @@ const App: React.FC = () => {
       pagebreak: { mode: ['css', 'legacy'] },
     };
     Promise.resolve(html2pdf().set(opt).from(element).save())
-      .then(() => showToast('تم تحميل ملف PDF بنجاح ✅', 'success'))
+      .then(() => showToast('تم تحميل ملف PDF بنجاح', 'success'))
       .catch(() => showToast('تعذر إنشاء ملف PDF، حاول مرة أخرى.', 'error'))
       .finally(() => setIsDownloading(false));
   };
@@ -365,6 +395,8 @@ const App: React.FC = () => {
 
       data.push(['']);
       data.push(['المجموع الكلي', '', '100', calculateTotal()]);
+      data.push(['المجموع بالحروف', totalWords()]);
+      data.push(['التقدير العام', totalGrade().label]);
       data.push(['']);
       data.push(['ملحوظات المشرف وتوصياته:']);
       data.push([report.content.teacherRecommendations]);
@@ -375,7 +407,7 @@ const App: React.FC = () => {
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'تقرير العلامات');
       XLSX.writeFile(wb, `تقرير_علامات_${report.teacher.name || 'معلم'}.xlsx`);
-      showToast('تم تحميل ملف Excel للعلامات ✅', 'success');
+      showToast('تم تحميل ملف Excel للعلامات', 'success');
     } catch {
       showToast('تعذر إنشاء ملف Excel.', 'error');
     }
@@ -403,6 +435,10 @@ const App: React.FC = () => {
         ['توصيات للمعلم', report.content.teacherRecommendations],
         ['توصيات للمدير', report.content.principalRecommendations],
         [''],
+        ['المجموع بالأرقام', `${calculateTotal()} / 100`],
+        ['المجموع بالحروف', totalWords()],
+        ['التقدير العام', totalGrade().label],
+        [''],
         ['توقيع المشرف التربوي', report.supervisorName],
         ['تاريخ التصدير', new Date().toLocaleDateString('ar-PS')],
       ];
@@ -412,7 +448,7 @@ const App: React.FC = () => {
       XLSX.utils.book_append_sheet(wb, ws, 'التقرير الوصفي');
       ws['!cols'] = [{ wch: 25 }, { wch: 80 }];
       XLSX.writeFile(wb, `تقرير_وصفي_${report.teacher.name || 'معلم'}.xlsx`);
-      showToast('تم تحميل ملف Excel الوصفي ✅', 'success');
+      showToast('تم تحميل ملف Excel الوصفي', 'success');
     } catch {
       showToast('تعذر إنشاء ملف Excel.', 'error');
     }
@@ -423,7 +459,7 @@ const App: React.FC = () => {
     setSettings(next);
     setSelectedFont(next.font);
     setShowSettingsModal(false);
-    showToast('تم حفظ الإعدادات ✅', 'success');
+    showToast('تم حفظ الإعدادات', 'success');
   };
 
   const handleClearLocalData = () => {
@@ -692,7 +728,7 @@ const App: React.FC = () => {
         </table>
         <div className="flex justify-between text-[11px] font-bold mb-1 px-4">
           <p>التاريخ: {report.visit.date}</p>
-          <p>المجموع بالحروف: ________________________________</p>
+          <p>المجموع بالحروف: {totalWords()}</p>
         </div>
         <div className="border border-black p-2 min-h-[140px] text-[11px] mb-2 bg-slate-50/10">
           <p className="font-bold underline mb-1">ملحوظات المشرف وتوصياته:</p>
@@ -748,7 +784,12 @@ const App: React.FC = () => {
                       min="0"
                       max={ind.max}
                       value={report.scores[ind.id]}
-                      onChange={(e) => updateReport(`scores.${ind.id}`, parseFloat(e.target.value) || 0)}
+                      onChange={(e) =>
+                        updateReport(
+                          `scores.${ind.id}`,
+                          Math.max(0, Math.min(ind.max, parseFloat(e.target.value) || 0))
+                        )
+                      }
                       className="w-full text-center border-none p-1 text-sm bg-transparent focus:ring-0 outline-none font-black"
                     />
                   ) : (
@@ -852,6 +893,14 @@ const App: React.FC = () => {
               <Info size={14} /> عرض للقراءة فقط
             </div>
           )}
+          {view === 'wizard' && !isReadOnly && draftSavedAt && (
+            <div
+              className="hidden sm:flex bg-emerald-50 text-emerald-700 px-3 py-2 rounded-xl text-[11px] font-black border border-emerald-200 items-center gap-2"
+              title="يُحفظ التقرير تلقائيًا أثناء العمل"
+            >
+              <CheckCircle size={14} /> حفظ تلقائي
+            </div>
+          )}
           {view === 'wizard' && step === 5 && (
             <div className="flex gap-1 bg-slate-100 p-1 rounded-xl shadow-inner">
               <button
@@ -934,8 +983,18 @@ const App: React.FC = () => {
           onSave={handleSaveSettings}
           onClose={() => setShowSettingsModal(false)}
           onClearLocalData={handleClearLocalData}
+          onRestored={() => {
+            setArchiveCount(loadArchive().length);
+            setDraftSavedAt(loadDraft()?.savedAt ?? null);
+            const restored = loadSettings();
+            setSettings(restored);
+            setSelectedFont(restored.font);
+            showToast('تمت استعادة النسخة الاحتياطية — أعد فتح المسودة أو الأرشيف لرؤيتها.', 'success');
+          }}
         />
       )}
+
+      {showHelpModal && <HelpModal onClose={() => setShowHelpModal(false)} />}
 
       {showShareModal && (
         <div className="fixed inset-0 z-[2000] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 no-print">
@@ -954,6 +1013,12 @@ const App: React.FC = () => {
               هذا الرابط يحتوي على كافة بيانات التقرير بشكل مشفر — افتحه على أي جهاز لعرض التقرير
               للقراءة فقط.
             </p>
+            <button
+              onClick={copyTextSummary}
+              className="w-full flex items-center justify-center gap-2 mb-4 py-3 bg-blue-50 text-blue-700 border border-blue-200 rounded-xl font-black text-sm hover:bg-blue-100 transition-all"
+            >
+              <Copy size={16} /> نسخ ملخص التقرير نصيًا (واتساب/بريد)
+            </button>
             <div className="flex gap-2 mb-6">
               <input
                 readOnly
@@ -989,9 +1054,10 @@ const App: React.FC = () => {
             onContinueDraft={continueDraft}
             onOpenArchive={() => setShowArchiveModal(true)}
             onOpenSettings={() => setShowSettingsModal(true)}
+            onOpenHelp={() => setShowHelpModal(true)}
           />
           <footer className="text-center py-10 text-xs font-bold text-slate-400 no-print">
-            رفيق المشرف الذكي • الإصدار 1.0.0 • صُمم للمشرفين التربويين في فلسطين
+            رفيق المشرف الذكي • الإصدار 1.1.0 • صُمم للمشرفين التربويين في فلسطين
           </footer>
         </main>
       ) : (
@@ -1057,7 +1123,7 @@ const App: React.FC = () => {
                     <SpeechInput
                       label="الرقم الوطني للمدرسة"
                       value={report.schoolNationalId}
-                      onChange={(v) => updateReport('schoolNationalId', v)}
+                      onChange={(v) => updateReport('schoolNationalId', toPlainDigits(v))}
                     />
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4 md:gap-8 mt-6 md:mt-8">
@@ -1094,6 +1160,11 @@ const App: React.FC = () => {
                       value={report.visit.period}
                       onChange={(v) => updateReport('visit.period', v)}
                     />
+                    <SpeechInput
+                      label="رقم الزيارة"
+                      value={report.visit.visitNumber}
+                      onChange={(v) => updateReport('visit.visitNumber', toPlainDigits(v))}
+                    />
                   </div>
                 </section>
 
@@ -1115,12 +1186,17 @@ const App: React.FC = () => {
                       required
                       error={fieldErrors['teacher.idNumber']}
                       value={report.teacher.idNumber}
-                      onChange={(v) => updateReport('teacher.idNumber', v)}
+                      onChange={(v) => updateReport('teacher.idNumber', toPlainDigits(v))}
                     />
                     <SpeechInput
                       label="المؤهل العلمي"
                       value={report.teacher.qualification}
                       onChange={(v) => updateReport('teacher.qualification', v)}
+                    />
+                    <SpeechInput
+                      label="التخصص"
+                      value={report.teacher.specialization}
+                      onChange={(v) => updateReport('teacher.specialization', v)}
                     />
                     <SpeechInput
                       label="تاريخ التعيين"
@@ -1236,9 +1312,17 @@ const App: React.FC = () => {
                   <h3 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight leading-none">
                     توزيع علامات الأداء
                   </h3>
-                  <span className="chip bg-indigo-50 border-indigo-200 text-indigo-700">
-                    المجموع: {calculateTotal()} / 100
-                  </span>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="chip bg-indigo-50 border-indigo-200 text-indigo-700">
+                      المجموع: {calculateTotal()} / 100
+                    </span>
+                    <span className={`chip border ${totalGrade().className}`}>
+                      التقدير العام: {totalGrade().label}
+                    </span>
+                    <span className="chip bg-slate-50 border-slate-200 text-slate-600">
+                      {totalWords()}
+                    </span>
+                  </div>
                 </div>
                 <div className="overflow-x-auto rounded-2xl border-2 border-slate-100 shadow-xl">
                   {renderPerformanceTable(true)}
@@ -1393,6 +1477,13 @@ const App: React.FC = () => {
                 className="flex items-center gap-2 bg-emerald-50 px-5 py-3 rounded-2xl text-emerald-700 font-black border-2 border-emerald-200 transition-all text-sm"
               >
                 <Share2 size={20} /> <span>مشاركة</span>
+              </button>
+              <button
+                onClick={copyTextSummary}
+                className="flex items-center gap-2 bg-blue-50 px-5 py-3 rounded-2xl text-blue-700 font-black border-2 border-blue-200 transition-all text-sm"
+                title="نسخ ملخص التقرير نصيًا للمشاركة عبر واتساب أو البريد"
+              >
+                <Copy size={20} /> <span>نسخ الملخص</span>
               </button>
               <div className="flex bg-slate-100 rounded-2xl p-1 gap-1">
                 <button

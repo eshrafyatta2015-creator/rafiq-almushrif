@@ -97,7 +97,7 @@ const ArchiveModal: React.FC<ArchiveModalProps> = ({
       report: currentReport,
     };
     setItems(saveToArchive(entry));
-    onToast('تم حفظ التقرير في أرشيف الجهاز بنجاح ✅', 'success');
+    onToast('تم حفظ التقرير في أرشيف الجهاز بنجاح', 'success');
   };
 
   const handleDelete = (id: string) => {
@@ -125,7 +125,7 @@ const ArchiveModal: React.FC<ArchiveModalProps> = ({
         });
         const result = await response.json();
         if (result.status === 'success') {
-          setCloudStatus({ msg: 'تم الحفظ في الأرشيف السحابي بنجاح ✅', type: 'success' });
+          setCloudStatus({ msg: 'تم الحفظ في الأرشيف السحابي بنجاح', type: 'success' });
         } else {
           setCloudStatus({ msg: result.message || 'تعذر الحفظ في الأرشيف السحابي.', type: 'error' });
         }
@@ -135,7 +135,7 @@ const ArchiveModal: React.FC<ArchiveModalProps> = ({
         if (result.status === 'success') {
           try {
             onLoad(JSON.parse(result.savedData), currentFont);
-            setCloudStatus({ msg: 'تم استرجاع البيانات من السحابة بنجاح ✅', type: 'success' });
+            setCloudStatus({ msg: 'تم استرجاع البيانات من السحابة بنجاح', type: 'success' });
             setTimeout(onClose, 1200);
           } catch {
             setCloudStatus({ msg: 'البيانات المسترجعة غير صالحة.', type: 'error' });
@@ -242,7 +242,7 @@ const ArchiveModal: React.FC<ArchiveModalProps> = ({
                 <button
                   onClick={() => {
                     onLoad(item.report, item.font || currentFont);
-                    onToast('تم فتح التقرير المحفوظ ✅', 'success');
+                    onToast('تم فتح التقرير المحفوظ', 'success');
                     onClose();
                   }}
                   className="p-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all"

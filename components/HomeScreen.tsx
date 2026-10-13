@@ -10,6 +10,9 @@ import {
   Share2,
   ArrowLeft,
   CloudOff,
+  HelpCircle,
+  DatabaseBackup,
+  ClipboardCheck,
 } from 'lucide-react';
 
 interface HomeScreenProps {
@@ -21,6 +24,7 @@ interface HomeScreenProps {
   onContinueDraft: () => void;
   onOpenArchive: () => void;
   onOpenSettings: () => void;
+  onOpenHelp: () => void;
 }
 
 const timeAgo = (ts: number): string => {
@@ -43,12 +47,15 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
   onContinueDraft,
   onOpenArchive,
   onOpenSettings,
+  onOpenHelp,
 }) => {
   const features = [
-    { icon: <Sparkles size={18} />, text: 'تحليل ذكي للمجريات' },
+    { icon: <Sparkles size={18} />, text: 'تحليل ذكي للمجرييات' },
     { icon: <Mic size={18} />, text: 'إملاء صوتي عربي' },
+    { icon: <ClipboardCheck size={18} />, text: 'تقدير عام بالحروف' },
     { icon: <FileDown size={18} />, text: 'تصدير PDF و Excel' },
     { icon: <Share2 size={18} />, text: 'مشاركة التقارير' },
+    { icon: <DatabaseBackup size={18} />, text: 'نسخ احتياطي واستعادة' },
   ];
 
   return (
@@ -137,7 +144,23 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
           </div>
           <h3 className="mt-4 text-lg font-black text-slate-900">الإعدادات</h3>
           <p className="mt-1 text-xs font-bold text-slate-500 leading-relaxed">
-            رابط الخادم الذكي، الخط الافتراضي، وبيانات المشرف الافتراضية
+            رابط الخادم الذكي، الخط الافتراضي، النسخ الاحتياطي وبيانات المشرف
+          </p>
+        </button>
+
+        <button
+          onClick={onOpenHelp}
+          className="text-right bg-white rounded-3xl p-6 border border-slate-100 shadow-xl shadow-slate-200/60 hover:shadow-2xl hover:-translate-y-1 transition-all group"
+        >
+          <div className="flex items-start justify-between">
+            <div className="p-3.5 bg-violet-100 text-violet-700 rounded-2xl group-hover:scale-110 transition-transform">
+              <HelpCircle size={26} />
+            </div>
+            <span className="chip bg-violet-50 border-violet-200 text-violet-700">دليل</span>
+          </div>
+          <h3 className="mt-4 text-lg font-black text-slate-900">المساعدة والدليل</h3>
+          <p className="mt-1 text-xs font-bold text-slate-500 leading-relaxed">
+            خمس خطوات سريعة لإصدار تقرير مكتمل + نصائح الاستخدام والنسخ الاحتياطي
           </p>
         </button>
       </div>
@@ -145,7 +168,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
       {/* المميزات */}
       <div className="bg-white rounded-3xl border border-slate-100 shadow-xl shadow-slate-200/60 p-6 md:p-8 no-print">
         <h3 className="font-black text-slate-900 text-lg mb-5">مزايا رفيق المشرف</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
           {features.map((f) => (
             <div
               key={f.text}

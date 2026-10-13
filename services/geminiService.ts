@@ -51,9 +51,15 @@ const request = async <T>(path: string, body: unknown, defaultErrorMsg: string):
 };
 
 export const analyzeProceedings = async (proceedings: string): Promise<AnalysisResult> => {
+  let style: string = 'formal';
+  try {
+    style = loadSettings().analysisStyle || 'formal';
+  } catch {
+    style = 'formal';
+  }
   return request<AnalysisResult>(
     '/api/analyze-proceedings',
-    { proceedings },
+    { proceedings, style },
     'حدث خطأ أثناء تحليل مجرييات الحصة'
   );
 };
